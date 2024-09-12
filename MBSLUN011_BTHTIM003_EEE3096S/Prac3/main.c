@@ -69,8 +69,8 @@ uint8_t array[6] = {
 	0b11110000,	//240
 	0b00001111 	//15
 };
-static uint32_t timeBtnPress = 0;
-static uint8_t freq = 0;
+uint8_t toggle_frequency = 0; // 0 = 2 Hz, 1 = 1 Hz
+uint8_t led_toggle_counter = 0; // Counter to control LED toggling
 uint8_t k = 0;
 
 /* USER CODE END PV */
@@ -459,18 +459,8 @@ static void MX_GPIO_Init(void)
 void EXTI0_1_IRQHandler(void)
 {
 	// TODO: Add code to switch LED7 delay frequency
-	uint32_t currentTick = HAL_GetTick();
-
-	if ((currentTick - timeBtnPress) > DELAY) {
-		timeBtnPress = currentTick;
-
-		if(freq%2==0){
-			freq = 1;
-		}
-		else{
-			freq = 2;
-		}
-	}
+	// Toggle the frequency variable when button is pressed
+    	toggle_frequency = !toggle_frequency;
 
 	HAL_GPIO_EXTI_IRQHandler(Button0_Pin); // Clear interrupt flags
 }
@@ -480,8 +470,22 @@ void TIM6_IRQHandler(void)
 	// Acknowledge interrupt
 	HAL_TIM_IRQHandler(&htim6);
 
-	// Toggle LED7
-	HAL_GPIO_TogglePin(GPIOB, LED7_Pin);
+	// Check the frequency and update LED toggling behavior
+    		if (toggle_frequency == 0)
+    		{
+        		// 2 Hz mode: Toggle LED on every interrupt (every 500 ms)
+        		HAL_GPIO_TogglePin(GPIOB, LED7_Pin);
+    		}
+    		else
+   		{
+        		// 1 Hz mode: Toggle LED on every 2nd interrupt (every 1000 ms)
+        		led_toggle_counter++;
+        		if (led_toggle_counter >= 2)
+        		{
+            			HAL_GPIO_TogglePin(GPIOB, LED7_Pin);
+            			led_toggle_counter = 0; // Reset counter after toggling
+        		}
+    		}
 }
 
 void TIM16_IRQHandler(void)
